@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR dynamic PDF - Gestor de QRs Dinámicos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCodeJS Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos personalizados para animaciones suaves */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Header / Navbar Principal -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logotipo -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-qrcode text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-xl tracking-tight text-slate-900">QR<span class="text-brand-600">Dynamic</span> PDF</span>
+                        <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">SaaS Pro</span>
+                    </div>
+                </div>
+
+                <!-- Navegación por pestañas principales -->
+                <nav class="flex space-x-1 sm:space-x-2 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-white text-slate-900 shadow-sm">
+                        <i class="fa-solid fa-layer-group mr-1.5"></i>Mis QRs
+                    </button>
+                    <button onclick="switchTab('scanner-sim')" id="nav-scanner-sim" class="nav-btn px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-mobile-screen mr-1.5"></i>Simulador de Escaneo
+                    </button>
+                    <button onclick="switchTab('leads')" id="nav-leads" class="nav-btn px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-users mr-1.5"></i>Leads / Correos
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- PESTAÑA 1: DASHBOARD Y MIS QRs -->
+        <section id="tab-dashboard" class="tab-content active space-y-6">
+
+            <!-- Banner de información de QR Dinámico -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-brand-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl pointer-events-none">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <div class="relative z-10 max-w-3xl">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">¿Cómo funcionan los Códigos QR Dinámicos?</h1>
+                    <p class="mt-2 text-slate-300 text-sm sm:text-base leading-relaxed">
+                        El código QR físico impreso genera un <strong>ID permanente de redirección</strong>. Puedes actualizar el archivo PDF o el documento asignado tantas veces como quieras sin volver a imprimir la imagen del QR.
+                    </p>
+                    <div class="mt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-200">
+                        <span class="flex items-center bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                            <i class="fa-solid fa-rotate text-emerald-400 mr-2"></i> Actualizable ilimitadamente
+                        </span>
+                        <span class="flex items-center bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                            <i class="fa-solid fa-shield-halved text-amber-400 mr-2"></i> Captura de email requerida
+                        </span>
+                        <span class="flex items-center bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                            <i class="fa-solid fa-chart-line text-brand-400 mr-2"></i> Muestreo de accesos en vivo
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cabecera de la lista + Botón Crear -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Mis Documentos QR</h2>
+                    <p class="text-xs text-slate-500">Gestión de códigos QR activos e historial de versiones</p>
+                </div>
+                <button onclick="openCreateModal()" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Crear Nuevo QR Dinámico</span>
+                </button>
+            </div>
+
+            <!-- Grid de Códigos QR Creados -->
+            <div id="qr-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Se llena dinámicamente mediante JS -->
+            </div>
+
+            <!-- Empty State si no hay QRs -->
+            <div id="empty-qr-state" class="hidden text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                <div class="inline-flex p-4 bg-slate-50 rounded-full text-slate-400 mb-3">
+                    <i class="fa-solid fa-file-circle-plus text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">No tienes ningún QR creado</h3>
+                <p class="text-slate-500 text-sm max-w-sm mx-auto mt-1 mb-4">Crea tu primer código QR dinámico para empezar a compartir tus documentos PDF y capturar contactos.</p>
+                <button onclick="openCreateModal()" class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-xl font-medium text-sm hover:bg-brand-700 transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Crear Nuevo QR
+                </button>
+            </div>
+
+        </section>
+
+        <!-- PESTAÑA 2: SIMULADOR DE ESCANEO (VISTA USUARIO FINAL) -->
+        <section id="tab-scanner-sim" class="tab-content space-y-6">
+            <div class="max-w-2xl mx-auto">
+                <!-- Marco de teléfono o simulación -->
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
+                    
+                    <!-- Top Bar de la simulación -->
+                    <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-mono tracking-wider uppercase text-slate-300">Simulador de Experiencia del Usuario</span>
+                        </div>
+                        <span class="text-xs text-slate-400"><i class="fa-solid fa-qrcode mr-1"></i> Modo Escaneo</span>
+                    </div>
+
+                    <!-- Selector de QR activo para probar -->
+                    <div class="p-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2">
+                        <label for="sim-qr-select" class="text-xs font-semibold text-slate-700 whitespace-nowrap">Probar con el QR:</label>
+                        <select id="sim-qr-select" onchange="loadSelectedQrInSimulator()" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Opciones cargadas con JS -->
+                        </select>
+                    </div>
+
+                    <!-- Pantalla del Movil / Formulario / PDF -->
+                    <div id="sim-screen" class="p-6 sm:p-8 min-h-[500px] flex flex-col justify-center">
+
+                        <!-- ETAPA A: Formulario de Identificación (Gatekeeper) -->
+                        <div id="sim-gatekeeper" class="space-y-6 text-center">
+                            <div class="inline-flex p-4 bg-brand-50 text-brand-600 rounded-2xl mb-2">
+                                <i class="fa-solid fa-file-pdf text-4xl"></i>
+                            </div>
+                            
+                            <div>
+                                <h2 id="sim-doc-title" class="text-xl font-bold text-slate-900">Documento Protegido</h2>
+                                <p id="sim-doc-desc" class="text-sm text-slate-500 mt-1">Por favor, identifícate para acceder al archivo completo en PDF.</p>
+                            </div>
+
+                            <form onsubmit="handleGatekeeperSubmit(event)" class="space-y-4 text-left max-w-md mx-auto">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo</label>
+                                    <input type="text" id="sim-input-name" required placeholder="Ej. Ana García" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico <span class="text-red-500">*</span></label>
+                                    <input type="email" id="sim-input-email" required placeholder="tu@email.com" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                                </div>
+                                
+                                <div class="flex items-start gap-2 pt-1">
+                                    <input type="checkbox" id="sim-terms" required class="mt-1 rounded text-brand-600 focus:ring-brand-500">
+                                    <label for="sim-terms" class="text-xs text-slate-500">Acepto identificarme para descargar y visualizar este documento PDF.</label>
+                                </div>
+
+                                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-lg shadow-brand-500/25 transition duration-200 flex items-center justify-center gap-2">
+                                    <span>Acceder al PDF</span>
+                                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                                </button>
+                            </form>
+
+                            <p class="text-xs text-slate-400">Acceso seguro respaldado por sistema de QR Dinámico</p>
+                        </div>
+
+                        <!-- ETAPA B: Vista del Documento PDF (Visible tras el email) -->
+                        <div id="sim-pdf-view" class="hidden space-y-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                                <div>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 mb-1">
+                                        <i class="fa-solid fa-check-circle mr-1"></i> Identificación Correcta
+                                    </span>
+                                    <h3 id="unlocked-doc-title" class="font-bold text-slate-900 text-lg">Catálogo 2026.pdf</h3>
+                                </div>
+                                <button onclick="resetSimulatorAccess()" class="text-xs text-slate-500 hover:text-brand-600 font-medium">
+                                    <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Probar otro correo
+                                </button>
+                            </div>
+
+                            <!-- Mockup / Previewer de PDF -->
+                            <div class="bg-slate-800 rounded-xl overflow-hidden shadow-inner border border-slate-700 min-h-[350px] flex flex-col">
+                                <div class="bg-slate-900 px-4 py-2 flex items-center justify-between text-xs text-slate-400">
+                                    <span><i class="fa-solid fa-file-pdf text-red-400 mr-1.5"></i> Visor de Documento</span>
+                                    <span id="pdf-page-count">Página 1 de 1</span>
+                                </div>
+                                
+                                <div class="flex-1 p-6 bg-slate-700/50 flex flex-col items-center justify-center text-center">
+                                    <!-- Si es una URL externa o mock -->
+                                    <div id="pdf-content-preview" class="w-full h-full bg-white text-slate-800 p-6 rounded shadow-md text-left text-xs overflow-y-auto max-h-[280px]">
+                                        <!-- Render del contenido simulado del PDF -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botones de Acción para el visitante -->
+                            <div class="flex gap-3">
+                                <a id="download-pdf-btn" href="#" download="documento.pdf" target="_blank" class="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-download"></i> Descargar PDF Original
+                                </a>
+                                <button onclick="shareDocument()" class="px-4 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                                    <i class="fa-solid fa-share-nodes"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 3: LEADS Y REGISTRO DE CORREOS -->
+        <section id="tab-leads" class="tab-content space-y-6">
+            
+            <!-- Resumen Estadístico Superior -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 text-brand-600 rounded-xl">
+                        <i class="fa-solid fa-qrcode text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium">Total QRs Creados</span>
+                        <h4 id="stat-total-qrs" class="text-2xl font-bold text-slate-900">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i class="fa-solid fa-envelope-open-text text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium">Correos Capturados (Leads)</span>
+                        <h4 id="stat-total-leads" class="text-2xl font-bold text-slate-900">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                        <i class="fa-solid fa-eye text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium">Escaneos Totales</span>
+                        <h4 id="stat-total-scans" class="text-2xl font-bold text-slate-900">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Registros -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg">Historial de Correos e Identificaciones</h3>
+                        <p class="text-xs text-slate-500">Usuarios que han completado el formulario de acceso para ver un PDF</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button onclick="exportLeadsCSV()" class="px-3.5 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-medium text-slate-700 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-file-csv text-emerald-600"></i> Exportar CSV
+                        </button>
+                        <button onclick="clearAllLeads()" class="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-medium flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-trash-can"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 font-semibold">Usuario / Nombre</th>
+                                <th class="px-6 py-3 font-semibold">Correo Electrónico</th>
+                                <th class="px-6 py-3 font-semibold">Documento PDF Consultado</th>
+                                <th class="px-6 py-3 font-semibold">Fecha y Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table-body" class="divide-y divide-slate-200">
+                            <!-- Filas insertadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State si no hay leads -->
+                <div id="empty-leads-state" class="hidden text-center py-12">
+                    <p class="text-slate-400 text-sm"><i class="fa-solid fa-inbox text-2xl block mb-2"></i>Aún no hay correos capturados.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: CREAR / EDITAR QR DINÁMICO -->
+    <div id="modal-qr" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden transform transition-all">
+            
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <h3 id="modal-qr-title" class="font-bold text-base">Nuevo Código QR Dinámico</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="form-qr" onsubmit="handleSaveQr(event)" class="p-6 space-y-4">
+                <input type="hidden" id="qr-id">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre / Título del QR</label>
+                    <input type="text" id="qr-name" required placeholder="Ej: Menú Digital Restaurante 2026" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción Breve</label>
+                    <input type="text" id="qr-desc" placeholder="Ej: Carta principal de platos y postres" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <!-- Selección de Tipo de Origen de PDF -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Origen del Documento PDF</label>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button type="button" onclick="setPdfSourceType('preset')" id="btn-src-preset" class="py-2 text-xs font-semibold rounded-lg border border-brand-500 bg-brand-50 text-brand-700">Documento Muestra</button>
+                        <button type="button" onclick="setPdfSourceType('url')" id="btn-src-url" class="py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600">URL / Archivo Personal</button>
+                    </div>
+
+                    <!-- Opción Preset -->
+                    <div id="src-preset-container" class="space-y-2">
+                        <select id="qr-preset-select" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="https://www.w3.org/W3C/Design/review-process.pdf|Catálogo de Productos 2026|Listado completo de productos y precios actualizados para la temporada.">Catálogo de Productos 2026 (PDF Muestra)</option>
+                            <option value="https://www.orimi.com/pdf-test.pdf|Manual de Usuario y Guía|Instrucciones detalladas de montaje y uso seguro del equipo.">Manual de Instalación (PDF Muestra)</option>
+                            <option value="https://www.pdf995.com/samples/pdf.pdf|Informe Trimestral de Resultados|Resumen ejecutivo y métricas claves de rendimiento.">Informe de Empresa (PDF Muestra)</option>
+                        </select>
+                    </div>
+
+                    <!-- Opción URL Externa -->
+                    <div id="src-url-container" class="hidden space-y-2">
+                        <input type="url" id="qr-custom-url" placeholder="https://ejemplo.com/mi-archivo.pdf" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+                        <p class="text-[11px] text-slate-400">Enlace directo a tu archivo PDF subido en Drive, Dropbox o tu servidor.</p>
+                    </div>
+                </div>
+
+                <!-- Mensaje aclaratorio de QR Dinámico -->
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-start gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5"></i>
+                    <span><strong>Importante:</strong> Al modificar estos datos posteriormente, el código QR mantendrá exactamente su misma imagen y geometría.</span>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition shadow-md shadow-brand-500/20">Guardar Código QR</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: VISTA AMPLIADA DE QR / DESCARGA -->
+    <div id="modal-view-qr" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden text-center p-6 space-y-4">
+            <h3 id="view-qr-title" class="font-bold text-slate-900 text-lg">Código QR</h3>
+            
+            <div id="modal-qr-container" class="flex justify-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <!-- Render QRCode -->
+            </div>
+
+            <p class="text-xs text-slate-500">Este QR redirige siempre a la última versión configurada del PDF.</p>
+
+            <div class="flex gap-2">
+                <button onclick="downloadQrImage()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-download"></i> Descargar PNG
+                </button>
+                <button onclick="closeViewQrModal()" class="px-4 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIONES TOAST -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 text-xs pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-msg">Mensaje de prueba</span>
+    </div>
+
+    <!-- SCRIPT LOGIC PRINCIPAL -->
+    <script>
+        // ESTADO GLOBAL DE LA APLICACIÓN
+        const STORAGE_KEY_QRS = 'qr_dynamic_pdf_list_v1';
+        const STORAGE_KEY_LEADS = 'qr_dynamic_pdf_leads_v1';
+
+        let qrList = [];
+        let leadsList = [];
+        let currentSimulatedQrId = null;
+        let pdfSourceMode = 'preset';
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStorageData();
+            if (qrList.length === 0) {
+                seedInitialData();
+            }
+            renderDashboard();
+            renderLeadsTable();
+            updateSimulatorQrOptions();
+        });
+
+        // CARGA Y PERSISTENCIA (LOCAL STORAGE)
+        function loadStorageData() {
+            try {
+                const storedQrs = localStorage.getItem(STORAGE_KEY_QRS);
+                const storedLeads = localStorage.getItem(STORAGE_KEY_LEADS);
+                if (storedQrs) qrList = JSON.parse(storedQrs);
+                if (storedLeads) leadsList = JSON.parse(storedLeads);
+            } catch (e) {
+                console.error("Error al cargar de localStorage", e);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY_QRS, JSON.stringify(qrList));
+            localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leadsList));
+        }
+
+        // DATOS DE PRUEBA INICIALES
+        function seedInitialData() {
+            qrList = [
+                {
+                    id: 'qr-sample-1',
+                    name: 'Catálogo de Verano 2026',
+                    description: 'Lista oficial de precios y prendas de temporada',
+                    pdfUrl: 'https://www.w3.org/W3C/Design/review-process.pdf',
+                    scans: 12,
+                    createdAt: new Date().toLocaleDateString('es-ES'),
+                    redirectToken: 'TOK-CATALOG-2026'
+                },
+                {
+                    id: 'qr-sample-2',
+                    name: 'Menú Degustación & Bebidas',
+                    description: 'Carta escaneable para mesas de restaurante',
+                    pdfUrl: 'https://www.orimi.com/pdf-test.pdf',
+                    scans: 28,
+                    createdAt: new Date().toLocaleDateString('es-ES'),
+                    redirectToken: 'TOK-MENU-DEGUST'
+                }
+            ];
+
+            leadsList = [
+                {
+                    id: 'lead-1',
+                    qrId: 'qr-sample-1',
+                    docName: 'Catálogo de Verano 2026',
+                    name: 'Carlos Mendoza',
+                    email: 'carlos.mendoza@example.com',
+                    timestamp: new Date(Date.now() - 3600000 * 4).toLocaleString('es-ES')
+                },
+                {
+                    id: 'lead-2',
+                    qrId: 'qr-sample-2',
+                    docName: 'Menú Degustación & Bebidas',
+                    name: 'Elena Beltrán',
+                    email: 'elena.b@example.com',
+                    timestamp: new Date(Date.now() - 3600000 * 24).toLocaleString('es-ES')
+                }
+            ];
+            saveData();
+        }
+
+        // CONTROL DE PESTAÑAS (TABS)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+
+            const selectedContent = document.getElementById(`tab-${tabId}`);
+            const selectedBtn = document.getElementById(`nav-${tabId}`);
+
+            if (selectedContent) selectedContent.classList.add('active');
+            if (selectedBtn) {
+                selectedBtn.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                selectedBtn.classList.remove('text-slate-600');
+            }
+
+            if (tabId === 'scanner-sim') {
+                updateSimulatorQrOptions();
+            } else if (tabId === 'leads') {
+                renderLeadsTable();
+            }
+        }
+
+        // RENDERIZAR DASHBOARD DE QRs
+        function renderDashboard() {
+            const container = document.getElementById('qr-grid');
+            const emptyState = document.getElementById('empty-qr-state');
+            container.innerHTML = '';
+
+            if (qrList.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            qrList.forEach(qr => {
+                const leadCount = leadsList.filter(l => l.qrId === qr.id).length;
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between overflow-hidden";
+                card.innerHTML = `
+                    <div class="p-5">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <span class="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-brand-50 text-brand-600 rounded-md mb-1">
+                                    QR Dinámico ID: ${qr.redirectToken}
+                                </span>
+                                <h3 class="font-bold text-slate-900 text-base line-clamp-1">${escapeHtml(qr.name)}</h3>
+                            </div>
+                            <div id="qr-thumb-${qr.id}" class="w-14 h-14 bg-slate-50 border border-slate-200 p-1 rounded-xl flex-shrink-0 flex items-center justify-center"></div>
+                        </div>
+
+                        <p class="text-xs text-slate-500 mt-2 line-clamp-2">${escapeHtml(qr.description || 'Sin descripción')}</p>
+
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                            <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i> ${leadCount} Leads</span>
+                            <span><i class="fa-solid fa-qrcode text-slate-400 mr-1"></i> ${qr.scans || 0} Escaneos</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-between items-center gap-2">
+                        <button onclick="viewQrModal('${qr.id}')" class="text-xs font-semibold text-slate-700 hover:text-brand-600 transition flex items-center gap-1">
+                            <i class="fa-solid fa-expand"></i> Ver QR
+                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="editQr('${qr.id}')" title="Modificar PDF sin cambiar QR" class="p-2 text-slate-500 hover:text-brand-600 hover:bg-slate-200 rounded-lg transition text-xs">
+                                <i class="fa-solid fa-pen-to-square"></i> Editar PDF
+                            </button>
+                            <button onclick="testInSimulator('${qr.id}')" title="Probar escaneo" class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-slate-200 rounded-lg transition text-xs">
+                                <i class="fa-solid fa-mobile-screen"></i> Probar
+                            </button>
+                            <button onclick="deleteQr('${qr.id}')" title="Eliminar QR" class="p-2 text-slate-400 hover:text-red-600 hover:bg-slate-200 rounded-lg transition text-xs">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // Generar Miniatura del QR
+                setTimeout(() => {
+                    const thumbDiv = document.getElementById(`qr-thumb-${qr.id}`);
+                    if (thumbDiv) {
+                        thumbDiv.innerHTML = '';
+                        new QRCode(thumbDiv, {
+                            text: `https://qrdynamic.pdf/view/${qr.redirectToken}`,
+                            width: 48,
+                            height: 48,
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    }
+                }, 50);
+            });
+
+            updateStats();
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS GLOBALES
+        function updateStats() {
+            document.getElementById('stat-total-qrs').innerText = qrList.length;
+            document.getElementById('stat-total-leads').innerText = leadsList.length;
+            const totalScans = qrList.reduce((acc, item) => acc + (item.scans || 0), 0);
+            document.getElementById('stat-total-scans').innerText = totalScans;
+        }
+
+        // CAMBIAR TIPO DE FUENTE PDF EN MODAL
+        function setPdfSourceType(type) {
+            pdfSourceMode = type;
+            const btnPreset = document.getElementById('btn-src-preset');
+            const btnUrl = document.getElementById('btn-src-url');
+            const containerPreset = document.getElementById('src-preset-container');
+            const containerUrl = document.getElementById('src-url-container');
+
+            if (type === 'preset') {
+                btnPreset.className = "py-2 text-xs font-semibold rounded-lg border border-brand-500 bg-brand-50 text-brand-700";
+                btnUrl.className = "py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600";
+                containerPreset.classList.remove('hidden');
+                containerUrl.classList.add('hidden');
+            } else {
+                btnUrl.className = "py-2 text-xs font-semibold rounded-lg border border-brand-500 bg-brand-50 text-brand-700";
+                btnPreset.className = "py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600";
+                containerUrl.classList.remove('hidden');
+                containerPreset.classList.add('hidden');
+            }
+        }
+
+        // MODAL CREAR / EDITAR QR
+        function openCreateModal() {
+            document.getElementById('form-qr').reset();
+            document.getElementById('qr-id').value = '';
+            document.getElementById('modal-qr-title').innerText = 'Nuevo Código QR Dinámico';
+            setPdfSourceType('preset');
+            document.getElementById('modal-qr').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-qr').classList.add('hidden');
+        }
+
+        function editQr(id) {
+            const qr = qrList.find(q => q.id === id);
+            if (!qr) return;
+
+            document.getElementById('qr-id').value = qr.id;
+            document.getElementById('qr-name').value = qr.name;
+            document.getElementById('qr-desc').value = qr.description;
+            document.getElementById('modal-qr-title').innerText = 'Editar PDF Dinámico';
+
+            if (qr.pdfUrl.startsWith('http') && !qr.pdfUrl.includes('w3.org') && !qr.pdfUrl.includes('orimi') && !qr.pdfUrl.includes('pdf995')) {
+                setPdfSourceType('url');
+                document.getElementById('qr-custom-url').value = qr.pdfUrl;
+            } else {
+                setPdfSourceType('preset');
+            }
+
+            document.getElementById('modal-qr').classList.remove('hidden');
+        }
+
+        function handleSaveQr(event) {
+            event.preventDefault();
+            const id = document.getElementById('qr-id').value;
+            const name = document.getElementById('qr-name').value;
+            const desc = document.getElementById('qr-desc').value;
+
+            let targetPdfUrl = '';
+
+            if (pdfSourceMode === 'preset') {
+                const val = document.getElementById('qr-preset-select').value;
+                targetPdfUrl = val.split('|')[0];
+            } else {
+                targetPdfUrl = document.getElementById('qr-custom-url').value || 'https://www.w3.org/W3C/Design/review-process.pdf';
+            }
+
+            if (id) {
+                // Editar existente manteniendo token id
+                const index = qrList.findIndex(q => q.id === id);
+                if (index !== -1) {
+                    qrList[index].name = name;
+                    qrList[index].description = desc;
+                    qrList[index].pdfUrl = targetPdfUrl;
+                    showToast('Documento PDF actualizado. ¡El QR sigue siendo el mismo!');
+                }
+            } else {
+                // Crear Nuevo
+                const newQr = {
+                    id: 'qr-' + Date.now(),
+                    name: name,
+                    description: desc,
+                    pdfUrl: targetPdfUrl,
+                    scans: 0,
+                    createdAt: new Date().toLocaleDateString('es-ES'),
+                    redirectToken: 'TOK-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+                };
+                qrList.push(newQr);
+                showToast('¡Código QR Dinámico generado correctamente!');
+            }
+
+            saveData();
+            renderDashboard();
+            updateSimulatorQrOptions();
+            closeModal();
+        }
+
+        function deleteQr(id) {
+            if (confirm('¿Estás seguro de eliminar este código QR y sus datos vinculados?')) {
+                qrList = qrList.filter(q => q.id !== id);
+                leadsList = leadsList.filter(l => l.qrId !== id);
+                saveData();
+                renderDashboard();
+                renderLeadsTable();
+                updateSimulatorQrOptions();
+                showToast('Código QR eliminado', 'trash');
+            }
+        }
+
+        // VER Y DESCARGAR QR
+        let activeViewQrObject = null;
+
+        function viewQrModal(id) {
+            const qr = qrList.find(q => q.id === id);
+            if (!qr) return;
+
+            document.getElementById('view-qr-title').innerText = qr.name;
+            const container = document.getElementById('modal-qr-container');
+            container.innerHTML = '';
+
+            activeViewQrObject = new QRCode(container, {
+                text: `https://qrdynamic.pdf/view/${qr.redirectToken}`,
+                width: 200,
+                height: 200,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('modal-view-qr').classList.remove('hidden');
+        }
+
+        function closeViewQrModal() {
+            document.getElementById('modal-view-qr').classList.add('hidden');
+        }
+
+        function downloadQrImage() {
+            const img = document.querySelector('#modal-qr-container img');
+            if (img && img.src) {
+                const link = document.createElement('a');
+                link.href = img.src;
+                link.download = `QR-Dinamico-${Date.now()}.png`;
+                link.click();
+                showToast('Descargando imagen del código QR PNG');
+            }
+        }
+
+        // LÓGICA DEL SIMULADOR DE ESCANEO
+        function updateSimulatorQrOptions() {
+            const select = document.getElementById('sim-qr-select');
+            select.innerHTML = '';
+
+            if (qrList.length === 0) {
+                select.innerHTML = '<option value="">No hay QRs disponibles</option>';
+                return;
+            }
+
+            qrList.forEach(qr => {
+                const opt = document.createElement('option');
+                opt.value = qr.id;
+                opt.innerText = `${qr.name} (${qr.redirectToken})`;
+                select.appendChild(opt);
+            });
+
+            if (!currentSimulatedQrId || !qrList.some(q => q.id === currentSimulatedQrId)) {
+                currentSimulatedQrId = qrList[0].id;
+            }
+
+            select.value = currentSimulatedQrId;
+            loadSelectedQrInSimulator();
+        }
+
+        function testInSimulator(qrId) {
+            currentSimulatedQrId = qrId;
+            switchTab('scanner-sim');
+        }
+
+        function loadSelectedQrInSimulator() {
+            const select = document.getElementById('sim-qr-select');
+            currentSimulatedQrId = select.value;
+            const qr = qrList.find(q => q.id === currentSimulatedQrId);
+
+            if (!qr) return;
+
+            // Reset vistas
+            document.getElementById('sim-gatekeeper').classList.remove('hidden');
+            document.getElementById('sim-pdf-view').classList.add('hidden');
+
+            document.getElementById('sim-doc-title').innerText = qr.name;
+            document.getElementById('sim-doc-desc').innerText = qr.description || 'Ingresa tu e-mail para abrir este documento en PDF.';
+        }
+
+        function handleGatekeeperSubmit(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('sim-input-name').value;
+            const email = document.getElementById('sim-input-email').value;
+
+            const qr = qrList.find(q => q.id === currentSimulatedQrId);
+            if (!qr) return;
+
+            // Incrementar escaneos
+            qr.scans = (qr.scans || 0) + 1;
+
+            // Guardar Lead
+            const newLead = {
+                id: 'lead-' + Date.now(),
+                qrId: qr.id,
+                docName: qr.name,
+                name: name,
+                email: email,
+                timestamp: new Date().toLocaleString('es-ES')
+            };
+
+            leadsList.unshift(newLead);
+            saveData();
+            updateStats();
+
+            // Desbloquear vista de PDF
+            document.getElementById('sim-gatekeeper').classList.add('hidden');
+            document.getElementById('sim-pdf-view').classList.remove('hidden');
+
+            document.getElementById('unlocked-doc-title').innerText = qr.name;
+            document.getElementById('download-pdf-btn').href = qr.pdfUrl;
+
+            // Generar contenido visual simulado de PDF
+            renderSimulatedPdfContent(qr);
+
+            showToast('¡Identificación verificada! Accediendo al PDF...');
+        }
+
+        function renderSimulatedPdfContent(qr) {
+            const container = document.getElementById('pdf-content-preview');
+            container.innerHTML = `
+                <div class="border-b pb-3 mb-3 flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(qr.name)}</h4>
+                    <span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">PDF VISTA PREVIA</span>
+                </div>
+                <p class="text-slate-600 text-xs mb-3"><strong>Descripción:</strong> ${escapeHtml(qr.description || 'Documento oficial escaneado mediante Código QR Dinámico.')}</p>
+                
+                <div class="space-y-2 text-slate-500 text-[11px] bg-slate-50 p-3 rounded border border-slate-200">
+                    <p>📄 <strong>Ubicación de archivo:</strong> ${qr.pdfUrl}</p>
+                    <p>🕒 <strong>Última actualización:</strong> ${qr.createdAt}</p>
+                    <p>🔒 <strong>Acceso concedido a:</strong> ${document.getElementById('sim-input-email').value}</p>
+                </div>
+
+                <div class="mt-4 p-4 border-2 border-dashed border-slate-200 rounded text-center text-slate-400">
+                    <i class="fa-solid fa-file-pdf text-3xl mb-1 text-red-500"></i>
+                    <p class="text-xs">El archivo PDF se ha abierto correctamente en tu sesión simulada.</p>
+                </div>
+            `;
+        }
+
+        function resetSimulatorAccess() {
+            document.getElementById('sim-input-name').value = '';
+            document.getElementById('sim-input-email').value = '';
+            document.getElementById('sim-gatekeeper').classList.remove('hidden');
+            document.getElementById('sim-pdf-view').classList.add('hidden');
+        }
+
+        function shareDocument() {
+            showToast('Enlace de compartición copiado al portapapeles');
+        }
+
+        // TABLA Y EXPORTACIÓN DE LEADS
+        function renderLeadsTable() {
+            const tbody = document.getElementById('leads-table-body');
+            const emptyState = document.getElementById('empty-leads-state');
+            tbody.innerHTML = '';
+
+            if (leadsList.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            leadsList.forEach(lead => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-semibold text-slate-900 flex items-center gap-2">
+                        <div class="w-7 h-7 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center font-bold text-xs">
+                            ${lead.name ? lead.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <span>${escapeHtml(lead.name || 'Anónimo')}</span>
+                    </td>
+                    <td class="px-6 py-4 text-brand-600 font-medium">${escapeHtml(lead.email)}</td>
+                    <td class="px-6 py-4 text-slate-600">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">
+                            <i class="fa-solid fa-file-pdf text-red-500 mr-1.5"></i> ${escapeHtml(lead.docName)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-400 text-xs">${lead.timestamp}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearAllLeads() {
+            if (confirm('¿Deseas borrar todo el historial de correos e identificaciones capturadas?')) {
+                leadsList = [];
+                saveData();
+                renderLeadsTable();
+                updateStats();
+                showToast('Historial de correos limpiado', 'trash');
+            }
+        }
+
+        function exportLeadsCSV() {
+            if (leadsList.length === 0) {
+                showToast('No hay correos para exportar', 'exclamation-triangle');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Nombre,Correo,Documento,Fecha\n";
+            leadsList.forEach(l => {
+                csvContent += `"${l.name}","${l.email}","${l.docName}","${l.timestamp}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Leads_QR_PDF_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV exportado correctamente');
+        }
+
+        // UTILIDADES Y TOASTS
+        function showToast(message, icon = 'circle-check') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            toastIcon.className = `fa-solid fa-${icon} ${icon === 'trash' ? 'text-red-400' : 'text-emerald-400'}`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
